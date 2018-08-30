@@ -1,8 +1,6 @@
 import time
-import json
-import pickle
+import traceback
 import JobData
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -12,8 +10,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver import ActionChains
 import ReportingModule as Report
 import datetime as dt
-import keyboard
-import win32api, win32con
 '''
 Reference: https://stackoverflow.com/questions/37088589/selenium-wont-open-a-new-url-in-a-new-tab-python-chrome
 https://stackoverflow.com/questions/28431765/open-web-in-new-tab-selenium-python
@@ -28,20 +24,29 @@ jobLocation = "Austin, Texas" # your desired job location
 resumeLocation = "" # your resume location on local machine
 
 currentPageJobsList = []
-allEasyApplyJobsList=[]
-failedEasyApplyJobsList=[]
-appliedEasyApplyJobsList=[]
+allEasyApplyJobsList = []
+failedEasyApplyJobsList = []
+appliedEasyApplyJobsList = []
 
-def click(x,y):
-    win32api.SetCursorPos((x,y))
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+
+def click(driver, x, y):
+    el = driver.find_elements_by_xpath("//button[contains(string(), 'Lucky')]")[0]
+    action = webdriver.common.action_chains.ActionChains(driver)
+    action.move_to_element_with_offset(el, x, y)
+    action.click()
+    action.perform()
+    # win32api.SetCursorPos((x,y))
+    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
+    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+
 
 def init_driver():
-    driver = webdriver.Chrome(executable_path = "./chromedriver.exe")
+    #driver = webdriver.Chrome(executable_path = "./chromedriver.exe")
+    driver = webdriver.Chrome()
     driver.wait = WebDriverWait(driver, 10)
     return driver
 #enddef
+
 
 def login(driver, username, password):
     driver.get("https://www.linkedin.com/")
@@ -59,34 +64,22 @@ def login(driver, username, password):
         print("TimeoutException! Username/password field or login button not found on glassdoor.com")
 #enddef
 
+
 def searchJobs(driver):
     driver.get(usualjobslink)
     time.sleep(5)
-    a=[]
-	
-    a = driver.find_elements_by_class_name("ember-view")
-    for i in a:
-        print (i.get_attribute("id"))
-    jobDescField = a[29]
-    print(jobDescField.get_attribute("id"))
-    locField = a[30]
-    print(jobDescField.get_attribute("id"))
+
+    jobDescField = driver.find_element_by_css_selector("[id^=jobs-search-box-keyword-id-ember]")
+    print('jobDescField id', jobDescField.get_attribute("id"))
+    locField = driver.find_element_by_css_selector("[id^=jobs-search-box-location-id-ember]")
+    print('locField id', locField.get_attribute("id"))
     search_button = driver.find_element_by_class_name("jobs-search-box__submit-button")
-    ac = ActionChains(driver)
-    ac.move_to_element(jobDescField).move_by_offset(10,10).click().perform()
+    jobDescField.send_keys(jobTitle)
     time.sleep(1)
-    keyboard.write(jobTitle)
-    ac.move_to_element(locField).move_by_offset(10,10).click().perform()
-    time.sleep(1)
-    keyboard.write(jobLocation)
-	#jobDescField.send_keys(jobTitle)
-    #jobDescField.send_keys(Keys.TAB)
-    time.sleep(1)
-    #locField.send_keys(jobLocation)
+    locField.send_keys(jobLocation)
     time.sleep(1)
     search_button.click()
     time.sleep(2)   
-    j=0
 
     while True:
         scheight = .1
@@ -97,12 +90,13 @@ def searchJobs(driver):
         for i in alljobsonpage:
 
             try:
-                easyapply = i.find_element_by_class_name("job-card-search__easy-apply")
-                link = i.find_element_by_class_name("job-card-search__link-wrapper")
-                job = convertJobElement(i)
+                # Easy apply button
+                i.find_element_by_class_name("job-card-search__easy-apply")
+                job = convertJobElement(driver, i)
                 currentPageJobsList.append(job)
                 allEasyApplyJobsList.append(job)
             except:
+                traceback.print_exc()
                 print("Not Easy Apply")
             print("____________________________")
         loopThroughJobs(driver,currentPageJobsList)
@@ -123,6 +117,7 @@ def searchJobs(driver):
 def loopThroughJobs(driver,jobsList):
     #applyToJob(driver,jobsList[0])
     for i in jobsList:
+        print('applying: ', i)
         #time.sleep(30)
         if(applyToJob(driver,i)):
             continue
@@ -162,18 +157,27 @@ def applyToJob(driver,job):
         print("Found None")
 
     try:
+        upload_element = driver.find_elements_by_css_selector('input[type="file"]')
+        upload_element.sendKeys(resumeLocation)
+
+        # ember709-phone-number-question
+        # for all input type=radio, click first child
+
+        # upload_button = driver.find_element_by_xpath("//button[contains(.,'Upload resume')]")
+        # print(upload_button)
+        # upload_button.click()
         #driver.find_element_by_css_selector('input[type="file"]').clear()
         #driver.find_element_by_css_selector('input[type="file"]').send_keys(resumeLocation)
-        click(610,505)
-        time.sleep(1)
-        keyboard.write("resume.pdf")
-        time.sleep(1)
-        keyboard.press_and_release('Enter')
-        time.sleep(3)
-        click(410,440)
-        time.sleep(1)
-        keyboard.write("(757)439-0083")
-        time.sleep(3)
+        # click(driver, 610,505)
+        # time.sleep(1)
+        # keyboard.write("resume.pdf")
+        # time.sleep(1)
+        # keyboard.press_and_release('Enter')
+        # time.sleep(3)
+        # click(driver, 410,440)
+        # time.sleep(1)
+        # keyboard.write("(757)439-0083")
+        # time.sleep(3)
         submitButton = driver.find_element_by_class_name('jobs-apply-form__submit-button')
         submitButton.click()
         time.sleep(1)
@@ -182,6 +186,7 @@ def applyToJob(driver,job):
         return True
         
     except:
+        traceback.print_exc()
         failedEasyApplyJobsList.append(job)
         allwindows = driver.window_handles
         if(len(allwindows) == 3):
@@ -192,32 +197,39 @@ def applyToJob(driver,job):
             
         return False
 
-    driver.close()
+    # driver.close()
     return False
     
 
-def convertJobElement(i):
+def convertJobElement(driver, i):
+    curr = None
+    base_url = driver.current_url
     try:
         html = i.get_attribute("innerHTML")
-        soup = BeautifulSoup(html, "html.parser")
+        job_div = i.find_element_by_css_selector('[data-control-name="A_jobssearch_job_result_click"]')
+        job_id = job_div.get_attribute('data-job-id')
+        print('job_id', job_id)
+        link = '{}&currentJobId={}'.format(base_url, job_id)
+        print('link', link)
         #title = soup.find("h3", {"class" : "job-card__title"}).getText().strip()
         title = ""
 		#print("Job Title:" + title)
         #company = soup.find("h4", {"class" : "job-card__company-name"}).getText().strip()
         company = ""
         #print("Company:" + company)
-        link = i.find_element_by_class_name("job-card-search__link-wrapper").get_attribute('href')
-        link = soup.find("a", {"class" : "job-card-search__link-wrapper"})['href']
+        # link = i.find_element_by_class_name("job-card-search__link-wrapper").get_attribute('href')
+        # link = soup.find("a", {"class" : "job-card-search__link-wrapper"})['href']
         #print("Link:" + link)
         city = ""
         #city = soup.find("h5", {"class" : "job-card__location"}).getText().strip().replace("Job Location","")
         #print("City:" + city.strip())
         curr = JobData.JobData(title,company,link,city.strip(),html)
         print(curr)
-        return curr
     except:
+        traceback.print_exc()
         print("Howdy !!! Unable to convert JobElement")
-        return None
+
+    return curr
 
 
 def sendReportToEmail():
@@ -242,10 +254,9 @@ def saveReportAsCSV():
     f2 = '{0}-{1}.{2}'.format('failed',filename,'csv')
     writeToFile(f1,appliedjobs,"w+")
     writeToFile(f2,failedjobs,"w+")
-    
 
 
-if __name__ == "__main__":
+def main():
     driver = init_driver()
     time.sleep(3)
     print ("Logging into Linkedin account ...")
@@ -256,7 +267,5 @@ if __name__ == "__main__":
     saveReportAsCSV()
 
 
-
-
-
-
+if __name__ == "__main__":
+    main()
