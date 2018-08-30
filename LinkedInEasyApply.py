@@ -51,7 +51,7 @@ def login(driver, username, password):
         time.sleep(1)
         login_button.click()
     except TimeoutException:
-        print("TimeoutException! Username/password field or login button not found on glassdoor.com")
+        print("TimeoutException! Username/password field or login button not found on linkedin.com")
 #enddef
 
 
@@ -86,7 +86,7 @@ def searchJobs(driver):
                 currentPageJobsList.append(job)
                 allEasyApplyJobsList.append(job)
             except:
-                traceback.print_exc()
+                # traceback.print_exc()
                 print("Not Easy Apply")
             print("____________________________")
         loopThroughJobs(driver,currentPageJobsList)
@@ -106,11 +106,24 @@ def searchJobs(driver):
 
 def loopThroughJobs(driver,jobsList):
     #applyToJob(driver,jobsList[0])
-    for i in jobsList:
-        print('applying: ', i)
-        #time.sleep(30)
-        if applyToJob(driver,i):
-            continue
+    for job in jobsList:
+        print('applying: ', job)
+        window_before = driver.window_handles[0]
+        try:
+            applyToJob(driver, job)
+            appliedEasyApplyJobsList.append(job)
+        except:
+            traceback.print_exc()
+            failedEasyApplyJobsList.append(job)
+
+        allwindows = driver.window_handles
+        if len(allwindows) > 1:
+            for i in range(1, len(allwindows[1:])):
+                currWindow = allwindows[i]
+                driver.switch_to_window(currWindow)
+                driver.close()
+
+        driver.switch_to_window(window_before)
 
 
 def select_radio_option(driver, element):
@@ -118,12 +131,7 @@ def select_radio_option(driver, element):
 
 
 def applyToJob(driver,job):
-    
-    window_before = driver.window_handles[0]
-    if job:
-        execScript = "window.open('"+job.link+"', 'CurrJob');"
-    else:
-        return False
+    execScript = "window.open('"+job.link+"', 'CurrJob');"
     driver.execute_script(execScript)
     window_after = driver.window_handles[1]
     driver.switch_to_window(window_after)
@@ -136,62 +144,37 @@ def applyToJob(driver,job):
 
     driver.execute_script("window.scrollTo(0, 0);")
 
-    # Unlock this section for applying jobs
-    try:
-        div = driver.find_element_by_class_name("jobs-details-top-card__actions")
-        applyButton = div.find_element_by_class_name("jobs-s-apply__button")
-        applyButton.click()
-        print("clicked on easyapply")
-        time.sleep(5)
-    except:
-        print("Found None")
-        return False
-
-    success = False
+    div = driver.find_element_by_class_name("jobs-details-top-card__actions")
+    applyButton = div.find_element_by_class_name("jobs-s-apply__button")
+    applyButton.click()
+    print("clicked on easyapply")
+    time.sleep(5)
 
     window_after = driver.window_handles[2]
     driver.switch_to_window(window_after)
 
-    try:
-        phone_elements = driver.find_elements_by_css_selector('input[type="tel"]')
-        phone_elements[0].send_keys(phoneNumber)
+    phone_elements = driver.find_elements_by_css_selector('input[type="tel"]')
+    phone_elements[0].send_keys(phoneNumber)
 
-        # Would need to do something like this to make file upload work
-        # upload_elements = driver.find_elements_by_css_selector('input[type="file"]')
-        # upload_elements[0].send_keys(resumeLocation)
+    # Would need to do something like this to make file upload work
+    # upload_elements = driver.find_elements_by_css_selector('input[type="file"]')
+    # upload_elements[0].send_keys(resumeLocation)
 
-        radio_buttons = driver.find_elements_by_css_selector('input[type="radio"]')
-        # Select generate resume
-        select_radio_option(driver, radio_buttons[0])
-        # Select "Yes" to legally authorized to work
-        select_radio_option(driver, radio_buttons[2])
-        # Select "No" to requiring H1B visa
-        select_radio_option(driver, radio_buttons[5])
+    radio_buttons = driver.find_elements_by_css_selector('input[type="radio"]')
+    # Select generate resume
+    select_radio_option(driver, radio_buttons[0])
+    # Select "Yes" to legally authorized to work
+    select_radio_option(driver, radio_buttons[2])
+    # Select "No" to requiring H1B visa
+    select_radio_option(driver, radio_buttons[5])
 
-        submitButtons = driver.find_elements_by_css_selector('button[type="submit"]')
-        submitButtons[0].click()
+    submitButtons = driver.find_elements_by_css_selector('button[type="submit"]')
+    # submitButtons[0].click()
 
-        time.sleep(1)
-        appliedEasyApplyJobsList.append(job)
-        time.sleep(3)
-        success = True
-        
-    except:
-        traceback.print_exc()
-        failedEasyApplyJobsList.append(job)
+    time.sleep(1)
+    appliedEasyApplyJobsList.append(job)
+    time.sleep(3)
 
-    allwindows = driver.window_handles
-    if len(allwindows) > 1:
-        for i in range(len(allwindows[1:])):
-            currWindow  = allwindows[i]
-            driver.switch_to_window(currWindow)
-            driver.close()
-
-    driver.switch_to_window(window_before)
-
-    # driver.close()
-    return success
-    
 
 def convertJobElement(driver, i):
     curr = None
