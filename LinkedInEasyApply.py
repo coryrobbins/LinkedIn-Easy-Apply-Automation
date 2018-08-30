@@ -169,7 +169,7 @@ def applyToJob(driver,job):
     select_radio_option(driver, radio_buttons[5])
 
     submitButtons = driver.find_elements_by_css_selector('button[type="submit"]')
-    # submitButtons[0].click()
+    submitButtons[0].click()
 
     time.sleep(1)
     appliedEasyApplyJobsList.append(job)
