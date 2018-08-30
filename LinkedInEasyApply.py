@@ -21,6 +21,7 @@ username = "" # your email here
 password = "" # your password here
 jobTitle = "Software Engineer -senior -Senior" # your desired job title
 jobLocation = "Austin, Texas" # your desired job location
+phoneNumber = "8556555653"
 resumeLocation = "" # your resume location on local machine
 
 currentPageJobsList = []
@@ -119,13 +120,13 @@ def loopThroughJobs(driver,jobsList):
     for i in jobsList:
         print('applying: ', i)
         #time.sleep(30)
-        if(applyToJob(driver,i)):
+        if applyToJob(driver,i):
             continue
-    allwindows = driver.window_handles
-    if(len(allwindows) == 2):
-        driver.switch_to_window(allwindows[1])
-        driver.close()
-        driver.switch_to_window(allwindows[0])
+
+
+def select_radio_option(driver, element):
+    driver.execute_script("arguments[0].click();", element)
+
 
 def applyToJob(driver,job):
     
@@ -155,50 +156,52 @@ def applyToJob(driver,job):
         time.sleep(5)
     except:
         print("Found None")
+        return False
+
+    success = False
+
+    window_after = driver.window_handles[2]
+    driver.switch_to_window(window_after)
 
     try:
-        upload_element = driver.find_elements_by_css_selector('input[type="file"]')
-        upload_element.sendKeys(resumeLocation)
+        phone_elements = driver.find_elements_by_css_selector('input[type="tel"]')
+        phone_elements[0].send_keys(phoneNumber)
 
-        # ember709-phone-number-question
-        # for all input type=radio, click first child
+        # Would need to do something like this to make file upload work
+        # upload_elements = driver.find_elements_by_css_selector('input[type="file"]')
+        # upload_elements[0].send_keys(resumeLocation)
 
-        # upload_button = driver.find_element_by_xpath("//button[contains(.,'Upload resume')]")
-        # print(upload_button)
-        # upload_button.click()
-        #driver.find_element_by_css_selector('input[type="file"]').clear()
-        #driver.find_element_by_css_selector('input[type="file"]').send_keys(resumeLocation)
-        # click(driver, 610,505)
-        # time.sleep(1)
-        # keyboard.write("resume.pdf")
-        # time.sleep(1)
-        # keyboard.press_and_release('Enter')
-        # time.sleep(3)
-        # click(driver, 410,440)
-        # time.sleep(1)
-        # keyboard.write("(757)439-0083")
-        # time.sleep(3)
-        submitButton = driver.find_element_by_class_name('jobs-apply-form__submit-button')
-        submitButton.click()
+        radio_buttons = driver.find_elements_by_css_selector('input[type="radio"]')
+        # Select generate resume
+        select_radio_option(driver, radio_buttons[0])
+        # Select "Yes" to legally authorized to work
+        select_radio_option(driver, radio_buttons[2])
+        # Select "No" to requiring H1B visa
+        select_radio_option(driver, radio_buttons[5])
+
+        submitButtons = driver.find_elements_by_css_selector('button[type="submit"]')
+        submitButtons[0].click()
+
         time.sleep(1)
         appliedEasyApplyJobsList.append(job)
         time.sleep(3)
-        return True
+        success = True
         
     except:
         traceback.print_exc()
         failedEasyApplyJobsList.append(job)
-        allwindows = driver.window_handles
-        if(len(allwindows) == 3):
-            currWindow  = allwindows[2]
+
+    allwindows = driver.window_handles
+    if len(allwindows) > 1:
+        for i in range(len(allwindows[1:])):
+            currWindow  = allwindows[i]
             driver.switch_to_window(currWindow)
             driver.close()
-            driver.switch_to_window(window_after)
-            
-        return False
+
+    driver.switch_to_window(window_before)
 
     # driver.close()
-    return False
+    return success
     
 
 def convertJobElement(driver, i):
