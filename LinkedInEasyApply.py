@@ -30,17 +30,6 @@ failedEasyApplyJobsList = []
 appliedEasyApplyJobsList = []
 
 
-def click(driver, x, y):
-    el = driver.find_elements_by_xpath("//button[contains(string(), 'Lucky')]")[0]
-    action = webdriver.common.action_chains.ActionChains(driver)
-    action.move_to_element_with_offset(el, x, y)
-    action.click()
-    action.perform()
-    # win32api.SetCursorPos((x,y))
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
-    # win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
-
-
 def init_driver():
     #driver = webdriver.Chrome(executable_path = "./chromedriver.exe")
     driver = webdriver.Chrome()
